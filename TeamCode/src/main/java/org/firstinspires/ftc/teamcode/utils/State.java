@@ -12,7 +12,7 @@ public class State {
     public AprilTagInfo currentAprilTag = new AprilTagInfo(0, 0, 0, 0);
 
     // DANGEROUS_ARM_SAFETY_OVERRIDE overrides arm automatic safety methods, this flag can cause damage to the robot
-    protected boolean DANGEROUS_ARM_SAFETY_OVERRIDE = false;
+    public boolean DANGEROUS_ARM_SAFETY_OVERRIDE = false;
 
     private final ElapsedTime runTime = new ElapsedTime();
 
@@ -46,5 +46,16 @@ public class State {
      */
     public double getRunTimeInMilliseconds() {
         return runTime.milliseconds();
+    }
+
+    /**
+     * Returns if a value has reached a certain tolerance
+     * @param value value
+     * @param target target value
+     * @param tolerance tolerance
+     * @return if the value has reached the target value
+     */
+    public boolean reachedTolerance(double value, double target, double tolerance) {
+        return Math.abs(value - target) < tolerance;
     }
 }

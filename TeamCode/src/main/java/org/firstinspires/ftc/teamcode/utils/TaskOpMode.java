@@ -4,12 +4,14 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 
 import org.firstinspires.ftc.teamcode.tasks.Arm1SafetyTask;
 import org.firstinspires.ftc.teamcode.tasks.Arm2SafetyTask;
+import org.firstinspires.ftc.teamcode.tasks.CloseGrabberTask;
+import org.firstinspires.ftc.teamcode.tasks.OpenGrabberTask;
 
 public abstract class TaskOpMode extends LinearOpMode {
 
     // runUpdate is set to true so that it runs when the opmode first starts
     private boolean runUpdate = true;
-    private int updateCount = 0;
+    protected int updateCount = 0;
 
     public State state;
     public TaskManager taskManager;
@@ -25,6 +27,11 @@ public abstract class TaskOpMode extends LinearOpMode {
         taskManager = new TaskManager(state);
         telemetry.addData("Task Manager Initialized", "true");
 
+        // Call user defined setup method
+        setUp();
+        telemetry.addData("Finish Running Setup", "true");
+
+
         if (!state.DANGEROUS_ARM_SAFETY_OVERRIDE)
         {
             taskManager.addTask(new Arm1SafetyTask());
@@ -35,10 +42,6 @@ public abstract class TaskOpMode extends LinearOpMode {
         {
             telemetry.addData("WARNING: Arm Safety Tasks overridden, unsafe operations may occur", "true");
         }
-
-        // Call user defined setup method
-        setUp();
-        telemetry.addData("Finish Running Setup", "true");
 
         // Wait for start to be pressed on driver hub
         telemetry.addData("Waiting for opmode start", "true");
@@ -51,6 +54,7 @@ public abstract class TaskOpMode extends LinearOpMode {
         // OpMode loop
         while (opModeIsActive())
         {
+            state.currentAprilTag = state.hardware.getAprilTagInfo();
             // Call user defined repeat method
             repeat();
             telemetry.addData("Ran repeat", "true");

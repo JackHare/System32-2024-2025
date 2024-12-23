@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.utils;
 
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.LLResultTypes;
+import com.qualcomm.hardware.limelightvision.LLStatus;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.hardware.CRServo;
@@ -13,10 +14,14 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.List;
 
@@ -27,15 +32,15 @@ public class Hardware
     private final double MOTOR_DECELERATION = 0.05;
     private final double MOTOR_NEUTRAL = 0;
 
-    private final double ENCODER_CPR = 1120;
-    private final double GEAR_RATIO = 1;
-    private final double WHEEL_DIAMETER = 4;
+    private final double ENCODER_CPR = 28;
+    private final double GEAR_RATIO = 20.0;
+    private final double WHEEL_DIAMETER = 3;
     private final double CIRCUMFERENCE = Math.PI * WHEEL_DIAMETER;
 
-    private final int ARM1_MAX = -3000;
-    private final int ARM1_MIN = -100;
-    private final int ARM2_MAX = 100;
-    private final int ARM2_MIN = 500;
+    private final int ARM1_MAX = -4500;
+    private final int ARM1_MIN = 0;
+    private final int ARM2_MAX = 450;
+    private final int ARM2_MIN = 0;
 
     private final int SET_TO_POSITION_TOLERANCE = 5;
 
@@ -66,10 +71,10 @@ public class Hardware
     private Limelight3A limelight;
 
     // Pincher servo for specimens
-    private CRServo pincher;
+    public CRServo slurpy;
 
     // Slurpy intake/outtake servo for low basket
-    private Servo slurpy;
+    public Servo grabber;
 
     // Tracks the current drive motors target position
     private int frontLeftTargetPosition = 0;
@@ -79,6 +84,13 @@ public class Hardware
 
     // Refrence back to robot state
     private State state;
+
+    private AprilTagProcessor aprilTag;
+
+    /**
+     * The variable to store our instance of the vision portal.
+     */
+    private VisionPortal visionPortal;
 
     /**
      * Constructor for the Hardware class
@@ -99,8 +111,8 @@ public class Hardware
 
         // Map servos
         // TODO fix names in configuration
-        pincher = hardwareMap.get(CRServo.class, "Slurpy");
-        slurpy = hardwareMap.get(Servo.class, "Grabber");
+        slurpy = hardwareMap.get(CRServo.class, "Slurpy");
+        grabber = hardwareMap.get(Servo.class, "Grabber");
 
         // Map drive motors
         frontLeftMotor = hardwareMap.get(DcMotor.class, "FrontLeft");
@@ -124,7 +136,6 @@ public class Hardware
         imu.resetYaw();
 
         // Map the limelight
-        limelight = hardwareMap.get(Limelight3A.class, "Limelight");
 
         // Set up acceleration control for the drive motors
         frontLeft = new DcMotorAccelerated(frontLeftMotor, MOTOR_ACCELERATION, MOTOR_DECELERATION, MOTOR_NEUTRAL);
@@ -145,6 +156,18 @@ public class Hardware
         // Set arm motors brake mode
         arm1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         arm2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+
+
+
+
+        // Init AprilTag processor
+        aprilTag = AprilTagProcessor.easyCreateWithDefaults();
+
+
+        // Create the vision portal the easy way.
+        visionPortal = VisionPortal.easyCreateWithDefaults(hardwareMap.get(WebcamName.class, "Webcam 1"), aprilTag);
+
     }
 
     /**
@@ -197,10 +220,18 @@ public class Hardware
      * @param lateral left-right speed
      * @param yaw turn speed
      */
+    /**
+     * Set Left and right motor speed
+     * @param axial forward-back speed
+     * @param lateral left-right speed
+     * @param yaw turn speed
+     */
     public void setDrive(double axial, double lateral, double yaw)
     {
+
         // Flip the lateral power, I don't really know why this has to happen
         lateral *= -1;
+
 
         //Calc for wheels
         double frontLeftPower  = axial + lateral - yaw;
@@ -217,6 +248,7 @@ public class Hardware
         setFrontRightPower(appliedPowers[2]);
         setBackRightPower(appliedPowers[3]);
     }
+
 
     /**
      * Scales the motor powers to be between -1 and 1
@@ -239,6 +271,7 @@ public class Hardware
 
         return new double[]{frontLeftPower, frontRightPower, backLeftPower, backRightPower};
     }
+
 
     /**
      * Sets the frontLeft motor position and power
@@ -376,13 +409,12 @@ public class Hardware
     public void driveDistance(int distance, double power)
     {
         // https://pastebin.com/raw/pKzpptSj
-        // TODO determine if it is inches or centimeters
         double ROTATIONS = distance / CIRCUMFERENCE;
         double counts =  ENCODER_CPR * ROTATIONS * GEAR_RATIO;
-        changeFrontLeftMotorPosition((int)counts, power);
-        changeFrontRightMotorPosition((int)counts, power);
-        changeBackLeftMotorPosition((int)counts, power);
-        changeBackRightMotorPosition((int)counts, power);
+        changeFrontLeftMotorPosition((int) Math.round(counts), power);
+        changeFrontRightMotorPosition((int) Math.round(counts), power);
+        changeBackLeftMotorPosition((int) Math.round(counts), power);
+        changeBackRightMotorPosition((int) Math.round(counts), power);
     }
 
     /**
@@ -456,11 +488,10 @@ public class Hardware
     {
         if (state.DANGEROUS_ARM_SAFETY_OVERRIDE)
             state.telemetry.addData("WARNING: moving arm without safety on", "true");
-        else
-        {
-            // Clip the arm position between its max and min
-            position = Range.clip(position, ARM1_MIN, ARM1_MAX);
-        }
+
+        // Clip the arm position between its max and min
+        position = Range.clip(position, ARM1_MAX, ARM1_MIN);
+
         arm1.setTargetPosition(position);
         arm1.setPower(power);
         arm1.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -548,6 +579,7 @@ public class Hardware
      */
     public void setArm1HeightPercentage(double percentage, double power)
     {
+        percentage = Range.clip(percentage, 0, 1);
         setArm1Position((int)(percentage * (ARM1_MAX - ARM1_MIN) + ARM1_MIN), power);
     }
 
@@ -558,6 +590,7 @@ public class Hardware
      */
     public void setArm2HeightPercentage(double percentage, double power)
     {
+        percentage = Range.clip(percentage, 0, 1);
         setArm2Position((int)(percentage * (ARM2_MAX - ARM2_MIN) + ARM2_MIN), power);
     }
 
@@ -596,25 +629,38 @@ public class Hardware
      */
     public AprilTagInfo getAprilTagInfo()
     {
-        LLResult result = limelight.getLatestResult();
-        AprilTagInfo aprilTagInfo = new AprilTagInfo(0, 0, 0, 0);
+        List<AprilTagDetection> currentDetections = aprilTag.getDetections();
 
-        if (result  == null)
-            return aprilTagInfo;
+        AprilTagInfo aprilTagInfo = new AprilTagInfo(0,0,0,0);
 
-        List<LLResultTypes.FiducialResult > results =  result.getFiducialResults();
+        // Step through the list of detections and display info for each one.
+        for (AprilTagDetection detection : currentDetections) {
+            if (detection.metadata != null) {
+             //   telemetry.addLine(String.format("\n==== (ID %d) %s", detection.id, detection.metadata.name));
+               // telemetry.addLine(String.format("XYZ %6.1f %6.1f %6.1f  (inch)", detection.ftcPose.x, detection.ftcPose.y, detection.ftcPose.z));
+               // telemetry.addLine(String.format("PRY %6.1f %6.1f %6.1f  (deg)", detection.ftcPose.pitch, detection.ftcPose.roll, detection.ftcPose.yaw));
+                //telemetry.addLine(String.format("RBE %6.1f %6.1f %6.1f  (inch, deg, deg)", detection.ftcPose.range, detection.ftcPose.bearing, detection.ftcPose.elevation));
+                aprilTagInfo.number = detection.id;
+                aprilTagInfo.x = detection.ftcPose.x;
+                aprilTagInfo.y = detection.ftcPose.y;
+                aprilTagInfo.z = detection.ftcPose.z;
 
-        for (LLResultTypes.FiducialResult res : results)
-        {
-            Pose3D pose3d = res.getCameraPoseTargetSpace();
-
-            aprilTagInfo.number = res.getFiducialId();
-            aprilTagInfo.x = (pose3d.getPosition().toUnit(DistanceUnit.INCH)).x;
-            aprilTagInfo.y =  (pose3d.getPosition().toUnit(DistanceUnit.INCH)).y;
-            aprilTagInfo.z =  (pose3d.getPosition().toUnit(DistanceUnit.INCH)).z;
-            return aprilTagInfo;
-        }
+            } else {
+                //telemetry.addLine(String.format("\n==== (ID %d) Unknown", detection.id));
+                //telemetry.addLine(String.format("Center %6.0f %6.0f   (pixels)", detection.center.x, detection.center.y));
+            }
+        }   // end for() loop
         return aprilTagInfo;
+    }
+
+    public int getFrontLeftTargetPosition()
+    {
+        return frontLeftTargetPosition;
+    }
+
+    public int getFrontRightTargetPosition()
+    {
+        return frontRightTargetPosition;
     }
 
     /**
@@ -623,6 +669,7 @@ public class Hardware
      */
     public boolean isFrontLeftAtTargetPosition()
     {
+        state.telemetry.addData("POSITION: ", Math.abs(frontLeftMotor.getCurrentPosition() - frontLeftTargetPosition));
         return Math.abs(frontLeftMotor.getCurrentPosition() - frontLeftTargetPosition) <= SET_TO_POSITION_TOLERANCE;
     }
 

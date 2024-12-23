@@ -10,17 +10,23 @@ public class DriveToPositionTask extends Task
 
     private int distance;
     private double power;
+    boolean firstRun = true;
 
-    DriveToPositionTask(int distance, double power)
+    public DriveToPositionTask(int distance, double power)
     {
-        this.distance = distance;
+        this.distance = -distance;
         this.power = power;
     }
 
     @Override
     public void run(State state)
     {
-        state.hardware.driveDistance(distance, power);
+        if (firstRun)
+        {
+            state.hardware.driveDistance(distance, power);
+            firstRun = false;
+        }
+        state.telemetry.addData("Front left", (state.hardware.isFrontLeftAtTargetPosition()));
         if (state.hardware.isFrontLeftAtTargetPosition() && state.hardware.isFrontRightAtTargetPosition() && state.hardware.isBackLeftAtTargetPosition() && state.hardware.isBackRightAtTargetPosition())
         {
             finished = true;

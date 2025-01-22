@@ -1,61 +1,39 @@
 package org.firstinspires.ftc.teamcode.opmodes.auto;
 
-import androidx.annotation.NonNull;
-
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
-import org.firstinspires.ftc.teamcode.tasks.CloseGrabberTask;
-import org.firstinspires.ftc.teamcode.tasks.DriveMotorReset;
-import org.firstinspires.ftc.teamcode.tasks.DriveRelativeToAprilTag;
+import org.firstinspires.ftc.teamcode.tasks.DriveMotorResetTask;
+import org.firstinspires.ftc.teamcode.tasks.DriveRelativeToAprilTagTask;
 import org.firstinspires.ftc.teamcode.tasks.DriveToPositionTask;
-import org.firstinspires.ftc.teamcode.tasks.IdleTask;
-import org.firstinspires.ftc.teamcode.tasks.LowerArmTask;
-import org.firstinspires.ftc.teamcode.tasks.OpenGrabberTask;
-import org.firstinspires.ftc.teamcode.tasks.RaiseArmPercentageTask;
-import org.firstinspires.ftc.teamcode.tasks.TurnDegreesTask;
-import org.firstinspires.ftc.teamcode.utils.Alliance;
-import org.firstinspires.ftc.teamcode.utils.TaskOpMode;
+import org.firstinspires.ftc.teamcode.tasks.SetArmsPercentageTask;
+import org.firstinspires.ftc.teamcode.util.Routine;
+import org.firstinspires.ftc.teamcode.util.RoutineOpMode;
 
-@Autonomous(name="Autonomous (RED)", group = "auto", preselectTeleOp = "Driver")
-public class RedAuto extends TaskOpMode {
+@Autonomous(name = "Red Auto")
+public class RedAuto extends RoutineOpMode {
 
-    Alliance alliance;
+    int updateCounter = 0;
 
     @Override
-    public void setUp()
-    {
-        // Set the alliance to red alliance
-        alliance = Alliance.RED;
-        state.DANGEROUS_ARM_SAFETY_OVERRIDE = true;
+    protected void initalize() {
+
     }
 
     @Override
-    public void update() {
+    protected void repeat() throws Exception {
 
-        if (updateCount == 0) {
-            taskManager.addTask(new DriveToPositionTask( 15, -1));
-            taskManager.addTask(new DriveMotorReset());
-            taskManager.addTask(new DriveRelativeToAprilTag(1, 0, 26, 0));
-            taskManager.addTask(new DriveMotorReset());
-            taskManager.addTask(new RaiseArmPercentageTask(1 - .25, .9));
-            taskManager.addTask(new DriveRelativeToAprilTag(1, 0, 30, 0));
-            taskManager.addTask(new DriveMotorReset());
-            taskManager.addTask(new OpenGrabberTask());
-            taskManager.addTask(new RaiseArmPercentageTask(.94 - .25, .9));
-
-
+        if (updateCounter == 0)
+        {
+            updateCounter++;
+            executor.addRoutine(Routine.builder().addTask(new DriveToPositionTask(robotState, 15, 1)));
+            executor.addRoutine(Routine.builder().addTask(new DriveMotorResetTask(robotState)));
+            executor.addRoutine(Routine.builder().addTask(new DriveRelativeToAprilTagTask(robotState, 1, 0, 24,0)));
+            executor.addRoutine(Routine.builder().addTask(new DriveMotorResetTask(robotState)));
         }
 
-
-
-
-    }
-
-    @Override
-    public void repeat()
-    {
-        if (taskManager.isEmpty())
-            state.hardware.setDrive(0,0,0);
-        telemetry.addData("Heading", state.hardware.getYawInDegrees());
+        telemetry.addData("FrontLeft", robotState.getHardware().getDrive().getFrontLeftPower());
+        telemetry.addData("FrontRight", robotState.getHardware().getDrive().getFrontRightPower());
+        telemetry.addData("BackLeft", robotState.getHardware().getDrive().getBackLeftPower());
+        telemetry.addData("BackRight", robotState.getHardware().getDrive().getBackRightPower());
     }
 }

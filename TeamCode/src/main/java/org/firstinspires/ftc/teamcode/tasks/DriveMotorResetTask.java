@@ -5,26 +5,26 @@ import androidx.annotation.NonNull;
 import org.firstinspires.ftc.teamcode.util.RobotState;
 import org.firstinspires.ftc.teamcode.util.Task;
 
-public class Arm2SafetyTask extends Task {
+public class DriveMotorResetTask extends Task {
 
-    RobotState robotState;
+    private RobotState robotState;
 
-    public Arm2SafetyTask(RobotState robotState) {
+    public DriveMotorResetTask(RobotState robotState)
+    {
         this.robotState = robotState;
     }
 
     @Override
     public void run() throws Exception {
 
-        robotState.getHardware().getArm2().runArmSafety();
-        if (robotState.getHardware().getArm2().getIfArmSafetyHasBeenRun())
-            finish();
+        robotState.getHardware().getDrive().setDrive(0,0,0);
+        finish();
 
     }
 
     @NonNull
     @Override
     public String toString() {
-        return "Arm2 Safety Task";
+        return "Drive Motor Reset";
     }
 }

@@ -2,26 +2,29 @@ package org.firstinspires.ftc.teamcode.tasks;
 
 import androidx.annotation.NonNull;
 
-import org.firstinspires.ftc.teamcode.utils.State;
-import org.firstinspires.ftc.teamcode.utils.Task;
+import org.firstinspires.ftc.teamcode.util.RobotState;
+import org.firstinspires.ftc.teamcode.util.Task;
 
 public class Arm1SafetyTask extends Task {
+
+    RobotState robotState;
+
+    public Arm1SafetyTask(RobotState robotState) {
+        this.robotState = robotState;
+    }
+
     @Override
-    public void run(State state)
-    {
-        state.hardware.setArm1Power(0.5);
-        if(state.hardware.getArm1Limit())
-        {
-            state.hardware.setArm1Power(0);
-            state.hardware.stopAndResetArm1Encoder();
-            state.telemetry.addData("Arm 1 Safety turned on", "true");
-            finished = true;
-        }
+    public void run() throws Exception {
+
+        robotState.getHardware().getArm1().runArmSafety();
+        if (robotState.getHardware().getArm1().getIfArmSafetyHasBeenRun())
+            finish();
+
     }
 
     @NonNull
     @Override
     public String toString() {
-        return "Arm 1 Safety Task";
+        return "Arm1 Safety Task";
     }
 }
